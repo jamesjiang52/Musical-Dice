@@ -1,9 +1,29 @@
+"""
+Generates 16-measure waltzes based on Mozart's "Musical Table", a collection
+of 176 measures. Measures are selected according to the rules of Mozart
+himself.
+"""
+
 import numpy as np
 import simpleaudio as sa
 import time
 
 
 def get_measures():
+    """
+    The text file holds note data. Each line is in the form
+
+    <note> <beat of actuation> <beat duration>
+
+    . For example,
+
+    C3 6 2
+
+    represents holding C3 for two beats, starting on beat 6.
+
+    This function reads the text file and separates the notes into measures,
+    each 3 beats long.
+    """
     notes = [line.rstrip("\n").split(" ") for line in open("original.txt")]
 
     measures = []
@@ -26,12 +46,22 @@ def get_measures():
 
 
 def roll():
+    """
+    Simulates a roll of two dice and returns the total.
+    """
     dice_1 = np.random.randint(1, 7)
     dice_2 = np.random.randint(1, 7)
     return(dice_1 + dice_2)
 
 
 def play_song(song_measures, tempo):
+    """
+    song_measures: List[List[List[str, float, float]]], tempo: int -> None
+
+    Plays the song, assuming that the notes are separated into measures. The
+    tempo (beats/min) changes the speed of playback. At tempo=120, playback
+    takes around 24 seconds (48 beats).
+    """
     A3 = sa.WaveObject.from_wave_file("notes_audio/A3.wav")
     A4 = sa.WaveObject.from_wave_file("notes_audio/A4.wav")
     A5 = sa.WaveObject.from_wave_file("notes_audio/A5.wav")
@@ -83,6 +113,10 @@ def play_song(song_measures, tempo):
 
 
 def main():
+    """
+    Simulates 16 dice rolls and makes the appropriate measure selections.
+    Plays the created waltz afterwards.
+    """
     song = []
     measures = get_measures()
     measure_selections = [
