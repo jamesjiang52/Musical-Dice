@@ -1,6 +1,5 @@
 import numpy as np
-import pyaudio
-import wave
+import simpleaudio as sa
 import time
 
 
@@ -32,44 +31,55 @@ def roll():
     return(dice_1 + dice_2)
 
 
-def measures_to_notes(song_measures):
-    notes = []
-    for i in range(len(song_measures)):
-        for j in range(len(song_measures[i])):
-            notes.append(song_measures[i][j])
-    return(notes)
+def play_song(song_measures, tempo):
+    A3 = sa.WaveObject.from_wave_file("notes_audio/A3.wav")
+    A4 = sa.WaveObject.from_wave_file("notes_audio/A4.wav")
+    A5 = sa.WaveObject.from_wave_file("notes_audio/A5.wav")
+    B2 = sa.WaveObject.from_wave_file("notes_audio/B2.wav")
+    B3 = sa.WaveObject.from_wave_file("notes_audio/B3.wav")
+    B4 = sa.WaveObject.from_wave_file("notes_audio/B4.wav")
+    B5 = sa.WaveObject.from_wave_file("notes_audio/B5.wav")
+    C_s_3 = sa.WaveObject.from_wave_file("notes_audio/C#3.wav")
+    C_s_5 = sa.WaveObject.from_wave_file("notes_audio/C#5.wav")
+    C2 = sa.WaveObject.from_wave_file("notes_audio/C2.wav")
+    C3 = sa.WaveObject.from_wave_file("notes_audio/C3.wav")
+    C4 = sa.WaveObject.from_wave_file("notes_audio/C4.wav")
+    C5 = sa.WaveObject.from_wave_file("notes_audio/C5.wav")
+    C6 = sa.WaveObject.from_wave_file("notes_audio/C6.wav")
+    D2 = sa.WaveObject.from_wave_file("notes_audio/D2.wav")
+    D3 = sa.WaveObject.from_wave_file("notes_audio/D3.wav")
+    D4 = sa.WaveObject.from_wave_file("notes_audio/D4.wav")
+    D5 = sa.WaveObject.from_wave_file("notes_audio/D5.wav")
+    D6 = sa.WaveObject.from_wave_file("notes_audio/D6.wav")
+    E3 = sa.WaveObject.from_wave_file("notes_audio/E3.wav")
+    E4 = sa.WaveObject.from_wave_file("notes_audio/E4.wav")
+    E5 = sa.WaveObject.from_wave_file("notes_audio/E5.wav")
+    F_s_3 = sa.WaveObject.from_wave_file("notes_audio/F#3.wav")
+    F_s_4 = sa.WaveObject.from_wave_file("notes_audio/F#4.wav")
+    F_s_5 = sa.WaveObject.from_wave_file("notes_audio/F#5.wav")
+    F3 = sa.WaveObject.from_wave_file("notes_audio/F3.wav")
+    F5 = sa.WaveObject.from_wave_file("notes_audio/F5.wav")
+    G2 = sa.WaveObject.from_wave_file("notes_audio/G2.wav")
+    G3 = sa.WaveObject.from_wave_file("notes_audio/G3.wav")
+    G4 = sa.WaveObject.from_wave_file("notes_audio/G4.wav")
+    G5 = sa.WaveObject.from_wave_file("notes_audio/G5.wav")
 
+    notes = {
+        "A3": A3, "A4": A4, "A5": A5, "B2": B2, "B3": B3, "B4": B4, "B5": B5,
+        "C#3": C_s_3, "C#5": C_s_5, "C2": C2, "C3": C3, "C4": C4, "C5": C5,
+        "C6": C6, "D2": D2, "D3": D3, "D4": D4, "D5": D5, "D6": D6, "E3": E3,
+        "E4": E4, "E5": E5, "F#3": F_s_3, "F#4": F_s_4, "F#5": F_s_5, "F3": F3,
+        "F5": F5, "G2": G2, "G3": G3, "G4": G4, "G5": G5}
 
-def play_note(note_str, length, tempo, p_class, stream):
-    chunk_size = 1024
-    note_audio = wave.open("notes_audio/" + note_str + ".wav", "rb")
-
-    data = note_audio.readframes(chunk_size)
-    start = time.time()
-
-    while (len(data) > 0) and (tempo/60*(time.time() - start) < length):
-        stream.write(data)
-        data = note_audio.readframes(chunk_size)
-
-
-def play_song(song_notes, tempo):
-    p = pyaudio.PyAudio()
-
-    stream = p.open(
-        format=p.get_format_from_width(2), channels=2, rate=11025, output=True)
-
-    start = time.time()
-    while True:
-        for i in range(len(song_notes)):
-            note = song_notes[i]
-            if note[1] != "done":
-                if note[1] >= (time.time() - start)*60/tempo:
-                    play_note(note[0], note[2], tempo, p, stream)
-                    song_notes[i][1] = "done"
-
-    stream.stop_stream()
-    stream.close()
-    p.terminate()
+    for i in range(16):
+        start = time.time()
+        while (time.time() - start) <= 3*60/tempo:
+            for j in range(len(song_measures[i])):
+                note = song_measures[i][j]
+                if note[1] != "done":
+                    if (note[1] - 3*i) <= (time.time() - start)*tempo/60:
+                        notes[note[0]].play()
+                        song_measures[i][j][1] = "done"
 
 
 def main():
@@ -101,7 +111,7 @@ def main():
             measure_selection[j][1] -= offset
         song.append(measure_selection)
 
-    play_song(measures_to_notes(song), 120)
+    play_song(song, 120)
 
 
 if __name__ == "__main__":
