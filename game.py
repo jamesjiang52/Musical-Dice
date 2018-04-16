@@ -4,16 +4,18 @@ of 176 measures. Measures are selected according to the rules of Mozart
 himself.
 """
 
-import numpy as np
-import simpleaudio as sa
 import time
+from numpy.random import randint
+from pyknon.genmidi import Midi
+from pyknon.music import Note, NoteSeq
+import pygame as pg
 
 
 def get_measures():
     """
     The text file holds note data. Each line is in the form
 
-    <note> <beat of actuation> <beat duration>
+    <note> <beat of actuation> <note duration>
 
     . For example,
 
@@ -24,7 +26,7 @@ def get_measures():
     This function reads the text file and separates the notes into measures,
     each 3 beats long.
     """
-    notes = [line.rstrip("\n").split(" ") for line in open("original.txt")]
+    notes = [line.rstrip("\n").split(" ") for line in open("notes.txt")]
 
     measures = []
     current = []
@@ -49,67 +51,77 @@ def roll():
     """
     Simulates a roll of two dice and returns the total.
     """
-    dice_1 = np.random.randint(1, 7)
-    dice_2 = np.random.randint(1, 7)
+    dice_1 = randint(1, 7)
+    dice_2 = randint(1, 7)
     return(dice_1 + dice_2)
 
 
-def play_song(song_measures, tempo):
+def measures_to_notes(measures):
     """
-    song_measures: List[List[List[str, float, float]]], tempo: int -> None
+    measures: List[List[List[str, float, float]]]
+         -> List[List[str, float, float]]
 
-    Plays the song, assuming that the notes are separated into measures. The
-    tempo (beats/min) changes the speed of playback. At tempo=120, playback
-    takes around 24 seconds (48 beats).
+    Breaks up a list of measures of notes into a list of notes.
     """
-    A3 = sa.WaveObject.from_wave_file("notes_audio/A3.wav")
-    A4 = sa.WaveObject.from_wave_file("notes_audio/A4.wav")
-    A5 = sa.WaveObject.from_wave_file("notes_audio/A5.wav")
-    B2 = sa.WaveObject.from_wave_file("notes_audio/B2.wav")
-    B3 = sa.WaveObject.from_wave_file("notes_audio/B3.wav")
-    B4 = sa.WaveObject.from_wave_file("notes_audio/B4.wav")
-    B5 = sa.WaveObject.from_wave_file("notes_audio/B5.wav")
-    C_s_3 = sa.WaveObject.from_wave_file("notes_audio/C#3.wav")
-    C_s_5 = sa.WaveObject.from_wave_file("notes_audio/C#5.wav")
-    C2 = sa.WaveObject.from_wave_file("notes_audio/C2.wav")
-    C3 = sa.WaveObject.from_wave_file("notes_audio/C3.wav")
-    C4 = sa.WaveObject.from_wave_file("notes_audio/C4.wav")
-    C5 = sa.WaveObject.from_wave_file("notes_audio/C5.wav")
-    C6 = sa.WaveObject.from_wave_file("notes_audio/C6.wav")
-    D2 = sa.WaveObject.from_wave_file("notes_audio/D2.wav")
-    D3 = sa.WaveObject.from_wave_file("notes_audio/D3.wav")
-    D4 = sa.WaveObject.from_wave_file("notes_audio/D4.wav")
-    D5 = sa.WaveObject.from_wave_file("notes_audio/D5.wav")
-    D6 = sa.WaveObject.from_wave_file("notes_audio/D6.wav")
-    E3 = sa.WaveObject.from_wave_file("notes_audio/E3.wav")
-    E4 = sa.WaveObject.from_wave_file("notes_audio/E4.wav")
-    E5 = sa.WaveObject.from_wave_file("notes_audio/E5.wav")
-    F_s_3 = sa.WaveObject.from_wave_file("notes_audio/F#3.wav")
-    F_s_4 = sa.WaveObject.from_wave_file("notes_audio/F#4.wav")
-    F_s_5 = sa.WaveObject.from_wave_file("notes_audio/F#5.wav")
-    F3 = sa.WaveObject.from_wave_file("notes_audio/F3.wav")
-    F5 = sa.WaveObject.from_wave_file("notes_audio/F5.wav")
-    G2 = sa.WaveObject.from_wave_file("notes_audio/G2.wav")
-    G3 = sa.WaveObject.from_wave_file("notes_audio/G3.wav")
-    G4 = sa.WaveObject.from_wave_file("notes_audio/G4.wav")
-    G5 = sa.WaveObject.from_wave_file("notes_audio/G5.wav")
+    notes = []
+    for i in range(len(measures)):
+        notes.extend(measures[i])
+    return(notes)
 
-    notes = {
-        "A3": A3, "A4": A4, "A5": A5, "B2": B2, "B3": B3, "B4": B4, "B5": B5,
-        "C#3": C_s_3, "C#5": C_s_5, "C2": C2, "C3": C3, "C4": C4, "C5": C5,
-        "C6": C6, "D2": D2, "D3": D3, "D4": D4, "D5": D5, "D6": D6, "E3": E3,
-        "E4": E4, "E5": E5, "F#3": F_s_3, "F#4": F_s_4, "F#5": F_s_5, "F3": F3,
-        "F5": F5, "G2": G2, "G3": G3, "G4": G4, "G5": G5}
 
-    for i in range(16):
-        start = time.time()
-        while (time.time() - start) <= 3*60/tempo:
-            for j in range(len(song_measures[i])):
-                note = song_measures[i][j]
-                if note[1] != "done":
-                    if (note[1] - 3*i) <= (time.time() - start)*tempo/60:
-                        notes[note[0]].play()
-                        song_measures[i][j][1] = "done"
+def note_to_index(note_str):
+    """
+    note_str: str -> int
+
+    Returns the integer value of the note in note_str, given as an index in
+    the list below.
+    """
+    notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+    return(notes.index(note_str))
+
+
+def create_song(song_notes, tempo):
+    """
+    song_notes: List[List[str, float, float]], tempo: int -> None
+
+    Creates a MIDI file with notes given in song_notes and saves it at
+    tmp/song.mid.
+    """
+    notes = []
+    beat = 0
+
+    while beat < 48:
+        chord = []
+        for song_note in song_notes:
+            if song_note[1] == beat:
+                if beat == 47:  # make last note longer
+                    dur = 0.5
+                else:
+                    dur = song_note[2]/4
+                note = Note(
+                    value=note_to_index(song_note[0][:-1]),
+                    octave=int(song_note[0][-1]) + 1,
+                    dur=dur)
+                chord.append(note)
+        if chord != []:  # beat isn't a rest
+            notes.append([NoteSeq(chord), beat])
+        beat += 0.5
+
+    midi = Midi(tempo=tempo)
+    for note in notes:
+        midi.seq_chords([note[0]], time=note[1])
+
+    midi.write("tmp/song.mid")
+
+
+def play_song(tempo):
+    """
+    Plays the created MIDI file located at tmp/song.mid.
+    """
+    pg.init()
+    pg.mixer.music.load("tmp/song.mid")
+    pg.mixer.music.play()
+    time.sleep(48*60/tempo)
 
 
 def main():
@@ -145,7 +157,9 @@ def main():
             measure_selection[j][1] -= offset
         song.append(measure_selection)
 
-    play_song(song, 120)
+    tempo = 120
+    create_song(measures_to_notes(song), tempo)
+    play_song(tempo)
 
 
 if __name__ == "__main__":
